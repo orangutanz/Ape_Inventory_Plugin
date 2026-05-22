@@ -13,6 +13,7 @@ enum EItemType
 {
 	Consumable       UMETA(DisplayName = "Consumable"),
 	Equipment        UMETA(DisplayName = "Equipment"),
+	Material		 UMETA(DisplayName = "Material"),
 	Misc		     UMETA(DisplayName = "Misc")
 };
 

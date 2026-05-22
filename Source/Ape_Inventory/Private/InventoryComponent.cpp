@@ -8,7 +8,7 @@ void UInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	// Add the Items array to the replicated properties
-	DOREPLIFETIME(UInventoryComponent, InventoryInfos);
+	DOREPLIFETIME_CONDITION(UInventoryComponent, InventoryInfos, COND_OwnerOnly);
 	DOREPLIFETIME(UInventoryComponent, EquipmentInfos);
 	DOREPLIFETIME(UInventoryComponent, EquipmentDefinitions);
 }
@@ -445,10 +445,9 @@ void UInventoryComponent::SERVER_SortItems_Implementation()
 	
 
 	//Type sort
-	//Items.Sort([](const UItemSlot& a, const UItemSlot& b) { return a.GetItemType() <= b.GetItemType(); });
+	//Inventory.Sort([](const UItemSlot& a, const UItemSlot& b) { return a.GetItemType() <= b.GetItemType(); });
 
 	UpdateInventoryInfos();
-	//OnInventoryUpdated.Broadcast();
 }
 
 void UInventoryComponent::DropItemAtIndex(const int32 index, bool fromEquipment)
@@ -665,33 +664,6 @@ void UInventoryComponent::SERVER_SwapEquipmentPosition_Implementation(const int3
 	UpdateEquipmentInfos();
 }
 
-
-void UInventoryComponent::BuyItem(FName ItemID, const int32 Quantity)
-{
-	SERVER_BuyItem(ItemID, Quantity);
-}
-
-void UInventoryComponent::SERVER_BuyItem_Implementation(FName ItemID, const int32 Quantity)
-{
-	//Let blueprints handle validation and logics
-	OnBuyItem.Broadcast(ItemID, Quantity);
-}
-
-void UInventoryComponent::SellItem(const int32 inventoryIndex)
-{
-	SERVER_SellItem(false,inventoryIndex);
-}
-
-void UInventoryComponent::SellEquipment(const int32 equipmentIndex)
-{
-	SERVER_SellItem(true, equipmentIndex);
-}
-void UInventoryComponent::SERVER_SellItem_Implementation(const bool fromEquiped, const int32 posIndex)
-{
-	//Let blueprints handle validation and logics
-	OnSellItem.Broadcast(fromEquiped, posIndex);
-}
-
 void UInventoryComponent::CallEquipmentUpdate()
 {
 	OnEquipmentUpdated.Broadcast();
@@ -782,4 +754,3 @@ void UInventoryComponent::CLIENT_NotifyItemAdded_Implementation(FItemInfo itemIn
 {
 	OnItemAdded.Broadcast(itemInfo);
 }
-

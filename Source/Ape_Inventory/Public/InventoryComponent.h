@@ -119,21 +119,6 @@ public:
 	UFUNCTION(Server, Reliable)
 	void SERVER_SwapEquipmentPosition(const int32 fromIndex, const int32 toIndex);
 
-	// ================ Merchant Functions ================ //
-	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Merchant")
-	void BuyItem(FName ItemID, const int32 Quantity = 1);
-	UFUNCTION(Server, Reliable)
-	void SERVER_BuyItem(FName ItemID, const int32 Quantity);
-
-	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Merchant")
-	void SellItem(const int32 inventoryIndex);
-
-	UFUNCTION(Server, Reliable)
-	void SERVER_SellItem(const bool fromEquiped, const int32 posIndex);
-
-	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Merchant")
-	void SellEquipment(const int32 equipmentIndex);
-
 
 	// ================ Local Functions ================ //
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory")
@@ -190,44 +175,39 @@ public:
 	UItemSlot* UtilitySlot;
 
 	// Inventory
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ape_Inventory", ReplicatedUsing = OnRep_InventoryUpdate)
-	TArray<FItemInfo> InventoryInfos; //ItemInfos
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ape_Inventory|Client", ReplicatedUsing = OnRep_InventoryUpdate)
+	TArray<FItemInfo> InventoryInfos; //Infos for clients
 
-	UPROPERTY()
+	UPROPERTY() //Items on server
 	TArray<UItemSlot*> Inventory;
 
 	// Equipment
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ape_Inventory", ReplicatedUsing = OnRep_EquipmentUpdate)
-	TArray<FItemInfo> EquipmentInfos;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ape_Inventory|Client", ReplicatedUsing = OnRep_EquipmentUpdate)
+	TArray<FItemInfo> EquipmentInfos; //Infos for clients
 
-	UPROPERTY()
+	UPROPERTY() //Items on server
 	TArray<UItemSlot*> Equipments;
 
 
 	// Delegates
-	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory")
+	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Client")
 	FOnInventoryUpdated OnInventoryUpdated;
 
-	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory")
+	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Client")
 	FOnEquipmentUpdated OnEquipmentUpdated;
 
-	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory")
+	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Server")
 	FOnDropInventoryItem OnDropInventoryItem;
 
-	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory")
+	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Server")
 	FOnUseInventoryItem OnUseInventoryItem;
 
-	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory")
+	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Client")
 	FOnItemAdded OnItemAdded;
 
-	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory")
+	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Client")
 	FOnItemRemoved OnItemRemoved;
 
-	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Merchant")
-	FOnBuyItem OnBuyItem;
-
-	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Merchant")
-	FOnSellItem OnSellItem;
 
 
 private:
