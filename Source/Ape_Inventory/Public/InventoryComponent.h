@@ -15,7 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemRemoved, FItemInfo, itemInfo)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSellItem, bool, fromEquipped, int, posIndex);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBuyItem, FName, itemID, int, Quantity);
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+UCLASS(Blueprintable, ClassGroup=(Custom))
 class APE_INVENTORY_API UInventoryComponent : public UActorComponent
 {
 	GENERATED_BODY()
