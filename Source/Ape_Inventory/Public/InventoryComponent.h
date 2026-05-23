@@ -26,6 +26,7 @@ protected:
 public:
 
 	//  ================ Server Only ================ //
+
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
 	void Initialize();
 
@@ -51,6 +52,7 @@ public:
 	void ClearInventory();
 
 	// ================ For Client ================ //
+
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Client")
 	void TakeItemFromInventory(UInventoryComponent* takeFromInventory, const int32 itemIndex);
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Client")

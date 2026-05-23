@@ -66,7 +66,7 @@ class APE_INVENTORY_API UItemSlot : public UObject
 public:
 	// Setter
 
-	/** Only call from Server	*/
+	/* Only call from Server	*/
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
 	void SetItemInfo(FItemInfo itemInfo);
 
