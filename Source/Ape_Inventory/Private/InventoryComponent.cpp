@@ -111,6 +111,49 @@ void UInventoryComponent::Reinitialize()
 	UpdateAllInfos();// Update inventory and equipement
 }
 
+void UInventoryComponent::ResizeInventory()
+{
+	if (!bInistialized)
+	{
+		Initialize();
+		return;
+	}
+
+	int32 oldSize = Inventory.Num();
+	if (oldSize < InventorySize) // Expand
+	{
+		for (int32 i = oldSize; i < oldSize; ++i)
+		{
+			Inventory.Add(NewObject<UItemSlot>());
+		}
+	}
+	else if (oldSize > InventorySize) // Shrink
+	{
+		TArray<UItemSlot*> TempArray;
+		for (int32 i = oldSize; i > InventorySize; --i) // Store extra
+		{
+			TempArray.Add(Inventory[i]);
+			Inventory.RemoveAt(i);
+		}
+		for (auto j : TempArray) // Add extra back
+		{
+			if (!j->IsEmpty())
+			{
+				AddItem(j);
+			}
+		}
+		for (auto k : TempArray) // Drop item if failed to add
+		{
+			if (!k->IsEmpty())
+			{
+				OnDropInventoryItem.Broadcast(k->GetItemInfo());
+			}
+		}
+	}
+
+	UpdateInventoryInfos();
+}
+
 void UInventoryComponent::Deinitialize()
 {
 	OnInventoryUpdated.Clear();
@@ -278,17 +321,47 @@ void UInventoryComponent::ClearInventory()
 	UpdateInventoryInfos();
 }
 
-int UInventoryComponent::FindItemQuantity(FName ItemID)
+void UInventoryComponent::SendInventoryInfo(UInventoryComponent* aboutInventory, const TArray<FItemInfo>& info)
 {
-	int totalAmount = 0;
-	for (auto i : InventoryInfos)
+	if (!aboutInventory)
+		return;
+	CLIENT_RecieveInventoryInfo(aboutInventory, info);
+}
+
+void UInventoryComponent::CLIENT_RecieveInventoryInfo_Implementation(UInventoryComponent* aboutInventory,const TArray<FItemInfo>& info)
+{
+	if (!aboutInventory)
+		return;
+	aboutInventory->InventoryInfos = info;
+	aboutInventory->OnInventoryUpdated.Broadcast();
+}
+
+void UInventoryComponent::ViewInventoryToggle(UInventoryComponent* viewingInventory, bool toggle)
+{
+	SERVER_ViewInventoryToggle(viewingInventory, toggle);
+	if (toggle == false)
 	{
-		if(i.ItemID == ItemID)
-		{
-			totalAmount += i.Quantity;
-		}
+		viewingInventory->InventoryInfos.Empty();
+		viewingInventory->OnInventoryUpdated.Broadcast();
 	}
-	return totalAmount;
+}
+
+void UInventoryComponent::SERVER_ViewInventoryToggle_Implementation(UInventoryComponent* viewingInventory, bool toggle)
+{
+	if (!viewingInventory)
+	{
+		return;
+	}
+
+	if (toggle)
+	{
+		viewingInventory->ViewingComponents.AddUnique(this);
+		SendInventoryInfo(viewingInventory, viewingInventory->InventoryInfos);
+	}
+	else
+	{
+		viewingInventory->ViewingComponents.Remove(this);
+	}
 }
 
 void UInventoryComponent::TakeItemFromInventory(UInventoryComponent* takeFromInventory, int32 itemIndex)
@@ -662,6 +735,19 @@ void UInventoryComponent::SERVER_SwapEquipmentPosition_Implementation(const int3
 	}
 	Equipments[fromIndex]->SwapItemInfo(Equipments[toIndex]);
 	UpdateEquipmentInfos();
+}
+
+int UInventoryComponent::FindItemQuantity(FName ItemID)
+{
+	int totalAmount = 0;
+	for (auto i : InventoryInfos)
+	{
+		if (i.ItemID == ItemID)
+		{
+			totalAmount += i.Quantity;
+		}
+	}
+	return totalAmount;
 }
 
 void UInventoryComponent::CallEquipmentUpdate()

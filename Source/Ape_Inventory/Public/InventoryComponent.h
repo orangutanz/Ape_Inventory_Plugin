@@ -27,15 +27,25 @@ public:
 
 	//  ================ Server Only ================ //
 
+	/* Create size*/
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
 	void Initialize();
 
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
 	void Reinitialize();
 
+	/* Use when resize inventory, will call OnDropInventoryItem if srinking and not big enough */
+	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
+	void ResizeInventory();
+
+	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
+	void RedefineEquipments();
+	
+	/* Clear all info, no dropping */
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
 	void Deinitialize();
 
+	/* Return true when fully added, else ItemSlot has remaining info */
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
 	bool AddItem(UItemSlot* item);
 
@@ -51,7 +61,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
 	void ClearInventory();
 
+	/* Server send item info to client about certain inventory */
+	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
+	void SendInventoryInfo(UInventoryComponent* aboutInventory, const TArray<FItemInfo>& info);
+	UFUNCTION(Client, Reliable)
+	void CLIENT_RecieveInventoryInfo(UInventoryComponent* aboutInventory, const TArray<FItemInfo>& info);
+
 	// ================ For Client ================ //
+	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Client")
+	void ViewInventoryToggle(UInventoryComponent* viewingInventory, bool toggle);
+	UFUNCTION(Server, Reliable)
+	void SERVER_ViewInventoryToggle(UInventoryComponent* viewingInventory, bool toggle);
 
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Client")
 	void TakeItemFromInventory(UInventoryComponent* takeFromInventory, const int32 itemIndex);
@@ -210,7 +230,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Client")
 	FOnItemRemoved OnItemRemoved;
 
-
+	// References
+	UPROPERTY()
+	TArray<TWeakObjectPtr<UInventoryComponent>> ViewingComponents;
 
 private:
 	bool bInistialized = false;
