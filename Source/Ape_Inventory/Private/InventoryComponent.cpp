@@ -31,86 +31,6 @@ void UInventoryComponent::Initialize()
 	UpdateAllInfos();
 }
 
-void UInventoryComponent::Reinitialize()
-{
-	if (!bInistialized)
-	{
-		Initialize();
-		return;
-	}
-
-	int32 oldSize = Inventory.Num();
-	if (oldSize < InventorySize) // Expand
-	{
-		for (int32 i = oldSize; i < oldSize; ++i)
-		{
-			Inventory.Add(NewObject<UItemSlot>());
-		}
-	}
-	else if (oldSize > InventorySize) // Shrink
-	{
-		TArray<UItemSlot*> TempArray;
-		for (int32 i = oldSize; i > InventorySize; --i) // Store extra
-		{
-			TempArray.Add(Inventory[i]);
-			Inventory.RemoveAt(i);
-		}
-		for (auto j : TempArray) // Add extra back
-		{
-			if (!j->IsEmpty())
-			{
-				AddItem(j);
-			}
-		}
-		for (auto k : TempArray) // Drop item if failed to add
-		{
-			if (!k->IsEmpty())
-			{
-				OnDropInventoryItem.Broadcast(k->GetItemInfo());
-			}
-		}		
-	}
-
-	UpdateInventoryInfos();
-	int32 newSize = EquipmentDefinitions.Num();
-	oldSize = Equipments.Num();
-	if (newSize == oldSize) // No Equipment changes
-	{
-		return;		
-	}
-
-	TArray<UItemSlot*>  newEquipmentSlots; // Equipment slots changed
-	int found = -1;
-	for (auto i : EquipmentDefinitions)
-	{
-		auto j = NewObject<UItemSlot>();
-		j->SlotName = i;
-		newEquipmentSlots.Add(j);
-	}
-	for (auto i : Equipments)
-	{
-		for (auto j : newEquipmentSlots)
-		{
-			if (i->GetSlotName() == j->GetSlotName())
-			{
-				i->SwapItemInfo(j);
-				break;
-			}
-		}
-		if (!i->IsEmpty())
-		{
-			if (!AddItem(i))
-			{
-				OnDropInventoryItem.Broadcast(i->GetItemInfo());
-			}
-		}
-	}
-	Equipments.Empty();
-	Equipments = newEquipmentSlots;
-
-	UpdateAllInfos();// Update inventory and equipement
-}
-
 void UInventoryComponent::ResizeInventory()
 {
 	if (!bInistialized)
@@ -154,14 +74,70 @@ void UInventoryComponent::ResizeInventory()
 	UpdateInventoryInfos();
 }
 
+void UInventoryComponent::RedefineEquipments()
+{
+	if (!bInistialized)
+	{
+		Initialize();
+		return;
+	}
+
+	TArray<UItemSlot*>  newEquipmentSlots; // Equipment change target
+	bool found = false;
+	for (auto i : EquipmentDefinitions)
+	{
+		found = false;
+		for (int j = 0; j < EquipmentDefinitions.Num(); j++)
+		{
+			if (Equipments[j]->SlotName == EquipmentDefinitions[j])
+			{
+				newEquipmentSlots.Add(Equipments[j]);  // Add existing slot
+				Equipments.RemoveAtSwap(j);
+				found = true;
+				return;
+			}
+		}
+		if (!found)
+		{
+			auto j = NewObject<UItemSlot>();  // Add new slot
+			j->SlotName = i;
+			newEquipmentSlots.Add(j);
+		}
+	}
+
+	for (int i = Equipments.Num() - 1; i >= 0; i--) 
+	{
+		UnequipItem(i); // Try unequiping
+	}
+
+	for (int i = Equipments.Num() - 1; i >= 0; i--)
+	{
+		DropItemAtIndex(i);  // Drop the rest that failed to unequip
+	}
+
+	Equipments.Empty();
+	Equipments = newEquipmentSlots;
+
+	UpdateAllInfos();// Update inventory and equipement
+}
+
 void UInventoryComponent::Deinitialize()
 {
 	OnInventoryUpdated.Clear();
 	OnEquipmentUpdated.Clear();
 	OnDropInventoryItem.Clear();
 	OnUseInventoryItem.Clear();
+	OnItemAdded.Clear();
+	OnItemRemoved.Clear();
 	Inventory.Empty();
+	InventoryInfos.Empty();
 	Equipments.Empty();
+	EquipmentInfos.Empty();
+	for (auto i : ViewingComponents)
+	{
+		i->ViewingComponents.Remove(this);
+	}
+	ViewingComponents.Empty();
 	bInistialized = false;
 }
 

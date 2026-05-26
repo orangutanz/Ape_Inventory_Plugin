@@ -31,13 +31,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
 	void Initialize();
 
-	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
-	void Reinitialize();
-
-	/* Use when resize inventory, will call OnDropInventoryItem if srinking and not big enough */
+	/* Will call OnDropInventoryItem if srinking and not big enough */
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
 	void ResizeInventory();
 
+	/* Will try unequip unmatched slots or call OnDropInventoryItem when inventory's full */
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
 	void RedefineEquipments();
 	
@@ -186,32 +184,40 @@ private:
 	void NotifyItemRemoved(FItemInfo itemInfo) { OnItemRemoved.Broadcast(itemInfo); } // Server Delegate
 
 public:
-	// Definition
+	//  ================ Definition ================ //
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ape_Inventory|Server")
 	int32 InventorySize = 12;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ape_Inventory|Server", Replicated)
 	TArray<FName> EquipmentDefinitions;
 
-	UPROPERTY()
-	UItemSlot* UtilitySlot;
+	//  ================ Inventory ================ //
 
-	// Inventory
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ape_Inventory|Client", ReplicatedUsing = OnRep_InventoryUpdate)
 	TArray<FItemInfo> InventoryInfos; //Infos for clients
 
 	UPROPERTY() //Items on server
 	TArray<UItemSlot*> Inventory;
 
-	// Equipment
+	//  ================ Equipment ================ //
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ape_Inventory|Client", ReplicatedUsing = OnRep_EquipmentUpdate)
 	TArray<FItemInfo> EquipmentInfos; //Infos for clients
 
 	UPROPERTY() //Items on server
 	TArray<UItemSlot*> Equipments;
 
+	//  ================ References ================ //
 
-	// Delegates
+	UPROPERTY()
+	TArray<TWeakObjectPtr<UInventoryComponent>> ViewingComponents;
+
+	UPROPERTY()
+	UItemSlot* UtilitySlot;
+
+	//  ================ Delegates ================ //
+
 	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Client")
 	FOnInventoryUpdated OnInventoryUpdated;
 
@@ -230,9 +236,6 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Client")
 	FOnItemRemoved OnItemRemoved;
 
-	// References
-	UPROPERTY()
-	TArray<TWeakObjectPtr<UInventoryComponent>> ViewingComponents;
 
 private:
 	bool bInistialized = false;
