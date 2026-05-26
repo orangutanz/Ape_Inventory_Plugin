@@ -15,7 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemRemoved, FItemInfo, itemInfo)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSellItem, bool, fromEquipped, int, posIndex);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBuyItem, FName, itemID, int, Quantity);
 
-UCLASS(Blueprintable, ClassGroup=(Custom))
+UCLASS(Blueprintable, BlueprintType, ClassGroup=(Custom))
 class APE_INVENTORY_API UInventoryComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -60,7 +60,7 @@ public:
 	void ClearInventory();
 
 	/* Server send item info to client about certain inventory */
-	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
+	UFUNCTION()
 	void SendInventoryInfo(UInventoryComponent* aboutInventory, const TArray<FItemInfo>& info);
 	UFUNCTION(Client, Reliable)
 	void CLIENT_RecieveInventoryInfo(UInventoryComponent* aboutInventory, const TArray<FItemInfo>& info);
