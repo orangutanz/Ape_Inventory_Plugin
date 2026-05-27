@@ -13,6 +13,13 @@ void UInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME(UInventoryComponent, EquipmentDefinitions);
 }
 
+void UInventoryComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	Initialize();
+}
+
 void UInventoryComponent::Initialize()
 {
 	if (bInistialized)
@@ -276,15 +283,29 @@ bool UInventoryComponent::RemoveItemByIndex(int32 index, int32 Amount)
 	return false;
 }
 
-bool UInventoryComponent::RemoveEquipmentByIndex(int32 index)
+bool UInventoryComponent::RemoveEquipment(int32 index, FName definition)
 {
 	if (index > Equipments.Num() -1)
 		return false;
-	if (Equipments[index]->IsEmpty())
-		return false;
 
-	Equipments[index]->ClearItemInfo();
-	UpdateEquipmentInfos();
+	if (index > -1)  // do index remove
+	{
+		Equipments[index]->ClearItemInfo();
+		UpdateEquipmentInfos();
+	}
+	else 
+	{
+		for (auto i : Equipments) //do name remove
+		{
+			if (i->SlotName.IsEqual(definition))
+			{
+				Equipments[index]->ClearItemInfo();
+				UpdateEquipmentInfos();
+				break;
+			}
+		}
+	}
+
 	return true;
 }
 
@@ -312,7 +333,7 @@ void UInventoryComponent::CLIENT_RecieveInventoryInfo_Implementation(UInventoryC
 	aboutInventory->OnInventoryUpdated.Broadcast();
 }
 
-void UInventoryComponent::ViewInventoryToggle(UInventoryComponent* viewingInventory, bool toggle)
+void UInventoryComponent::GetViewInventory(UInventoryComponent* viewingInventory, bool toggle)
 {
 	SERVER_ViewInventoryToggle(viewingInventory, toggle);
 	if (toggle == false)
@@ -324,7 +345,7 @@ void UInventoryComponent::ViewInventoryToggle(UInventoryComponent* viewingInvent
 
 void UInventoryComponent::SERVER_ViewInventoryToggle_Implementation(UInventoryComponent* viewingInventory, bool toggle)
 {
-	if (!viewingInventory)
+	if (!ValidateAccess(viewingInventory, EInventoryAccessLevel::ViewOnly))
 	{
 		return;
 	}
@@ -340,23 +361,38 @@ void UInventoryComponent::SERVER_ViewInventoryToggle_Implementation(UInventoryCo
 	}
 }
 
-void UInventoryComponent::TakeItemFromInventory(UInventoryComponent* takeFromInventory, int32 itemIndex)
+void UInventoryComponent::TakeFromInventory(UInventoryComponent* takeFromInventory, int32 itemIndex)
 {
 	if (!takeFromInventory || takeFromInventory->InventoryInfos.Num() <= itemIndex)
 		return;
-	SERVER_MoveItemBetweenInventory(takeFromInventory, itemIndex,true);
+	SERVER_MoveItemBetweenInventory(takeFromInventory, itemIndex,true); //to this inventory
+}
+
+
+void UInventoryComponent::TakeAllFrom(UInventoryComponent* takeFromInventory)
+{
+	if (!takeFromInventory)
+		return;
+	SERVER_TransferItems(takeFromInventory, true); //to this inventory
 }
 
 void UInventoryComponent::PutItemToInventory(UInventoryComponent* toInventory, int32 itemIndex)
 {
 	if (!toInventory)
 		return;
-	SERVER_MoveItemBetweenInventory(toInventory, itemIndex, false);
+	SERVER_MoveItemBetweenInventory(toInventory, itemIndex, false); // to other inventory
+}
+
+void UInventoryComponent::TransferAllTo(UInventoryComponent* transferToInventory)
+{
+	if (!transferToInventory)
+		return;
+	SERVER_TransferItems(transferToInventory, false); // to other inventory
 }
 
 void UInventoryComponent::SERVER_MoveItemBetweenInventory_Implementation(UInventoryComponent* targetInventory, int32 itemIndex, bool isTaking)
 {
-	if (!targetInventory)
+	if (!ValidateAccess(targetInventory, EInventoryAccessLevel::Unlimited))
 		return;
 
 	if (isTaking)
@@ -387,25 +423,9 @@ void UInventoryComponent::SERVER_MoveItemBetweenInventory_Implementation(UInvent
 	UpdateInventoryInfos();
 }
 
-
-void UInventoryComponent::TakeAllFrom(UInventoryComponent* takeFromInventory)
-{
-	if (!takeFromInventory)
-		return;
-	SERVER_TransferItems(takeFromInventory, true); //to this
-}
-
-
-void UInventoryComponent::TransferAllTo(UInventoryComponent* transferToInventory)
-{
-	if (!transferToInventory)
-		return;
-	SERVER_TransferItems(transferToInventory, false); // to other
-}
-
 void UInventoryComponent::SERVER_TransferItems_Implementation(UInventoryComponent* targetInventory, bool isTaking)
 {
-	if (!targetInventory)
+	if (!ValidateAccess(targetInventory, EInventoryAccessLevel::Unlimited))
 		return;
 
 	TArray<UItemSlot*> tempTransferedItems; // Fully transfered items
@@ -443,7 +463,9 @@ void UInventoryComponent::SERVER_TransferItems_Implementation(UInventoryComponen
 
 void UInventoryComponent::SwapItemByIndex(UInventoryComponent* fromInventory, UInventoryComponent* toInventory, const int32 fromA, const int32 toB)
 {
-	if (!fromInventory || !toInventory || fromInventory->InventorySize <= fromA || toInventory->InventorySize <= toB)
+	if (!ValidateAccess(fromInventory, EInventoryAccessLevel::Unlimited) || 
+		!ValidateAccess(toInventory, EInventoryAccessLevel::Unlimited) || 
+		fromInventory->InventorySize <= fromA || toInventory->InventorySize <= toB)
 	{
 		return;
 	}
@@ -453,7 +475,9 @@ void UInventoryComponent::SwapItemByIndex(UInventoryComponent* fromInventory, UI
 
 void UInventoryComponent::SERVER_SwapItemByIndex_Implementation(UInventoryComponent* fromInventory, UInventoryComponent* toInventory, const int32 fromA, const int32 toB)
 {
-	if (!fromInventory || !toInventory || fromInventory->InventorySize <= fromA || toInventory->InventorySize <= toB)
+	if (!ValidateAccess(fromInventory, EInventoryAccessLevel::Unlimited) || 
+		!ValidateAccess(toInventory, EInventoryAccessLevel::Unlimited) || 
+		fromInventory->InventorySize <= fromA || toInventory->InventorySize <= toB)
 	{
 		return;
 	}
@@ -489,12 +513,15 @@ void UInventoryComponent::SortItems()
 
 void UInventoryComponent::SERVER_SortItems_Implementation()
 {
+
+	/* Change to your sort logic */
+
 	//ID sort
 	Inventory.Sort([](const UItemSlot& a, const UItemSlot& b) { return b.GetItemID().FastLess(a.GetItemID()); });
 	
-
 	//Type sort
 	//Inventory.Sort([](const UItemSlot& a, const UItemSlot& b) { return a.GetItemType() <= b.GetItemType(); });
+	
 
 	UpdateInventoryInfos();
 }
@@ -599,19 +626,18 @@ void UInventoryComponent::SERVER_SplitItem_Implementation(const int32 fromIndex,
 }
 
 
-void UInventoryComponent::UseInventoryItem(UInventoryComponent* fromInventory, const int32 inventoryIndex)
+void UInventoryComponent::UseItem(UInventoryComponent* fromInventory, const int inventoryIndex, FName itemName)
 {
-	if (!fromInventory || fromInventory->InventoryInfos.Num() <= inventoryIndex)
-		return;
-	SERVER_UseInventoryItem(fromInventory, inventoryIndex);
-}
-
-void UInventoryComponent::UseInventoryItemByName(UInventoryComponent* fromInventory, FName itemName)
-{
-	if (!fromInventory)
+	
+	if (!!ValidateAccess(fromInventory, EInventoryAccessLevel::Unlimited) || 
+		fromInventory->InventoryInfos.Num() <= inventoryIndex)
 		return;
 
-	for (int i = 0; i < InventoryInfos.Num(); ++i)
+	if (itemName.IsNone()) // use index?
+	{
+		SERVER_UseInventoryItem(fromInventory, inventoryIndex);
+	}
+	for (int i = 0; i < InventoryInfos.Num(); ++i) // find name
 	{
 		if (fromInventory->InventoryInfos[i].ItemID == itemName)
 		{
@@ -621,10 +647,10 @@ void UInventoryComponent::UseInventoryItemByName(UInventoryComponent* fromInvent
 	}
 }
 
-
 void UInventoryComponent::SERVER_UseInventoryItem_Implementation(UInventoryComponent* fromInventory, const int32 inventoryIndex)
 {
-	if (!fromInventory || fromInventory->InventoryInfos.Num() <= inventoryIndex)
+	if (!ValidateAccess(fromInventory, EInventoryAccessLevel::Unlimited) || 
+		fromInventory->InventoryInfos.Num() <= inventoryIndex)
 		return;
 	OnUseInventoryItem.Broadcast(fromInventory->InventoryInfos[inventoryIndex], inventoryIndex);
 }
@@ -632,14 +658,16 @@ void UInventoryComponent::SERVER_UseInventoryItem_Implementation(UInventoryCompo
 
 void UInventoryComponent::EquipItem(UInventoryComponent* fromInventory, const int32 inventoryIndex, const int32 equipmentIndex)
 {
-	if (!fromInventory || fromInventory->InventoryInfos.Num() <= inventoryIndex || equipmentIndex >= EquipmentInfos.Num())
+	if (!ValidateAccess(fromInventory, EInventoryAccessLevel::Unlimited) || 
+		fromInventory->InventoryInfos.Num() <= inventoryIndex || equipmentIndex >= EquipmentInfos.Num())
 		return;
 	SERVER_EquipItem(fromInventory, inventoryIndex, equipmentIndex);
 }
 
 void UInventoryComponent::SERVER_EquipItem_Implementation(UInventoryComponent* fromInventory, const int32 inventoryIndex, const int32 equipmentIndex)
 {
-	if (!fromInventory || fromInventory->InventoryInfos.Num() <= inventoryIndex || equipmentIndex >= Equipments.Num())
+	if (!ValidateAccess(fromInventory, EInventoryAccessLevel::Unlimited) || 
+		fromInventory->InventoryInfos.Num() <= inventoryIndex || equipmentIndex >= Equipments.Num())
 		return;
 	fromInventory->Inventory[inventoryIndex]->SwapItemInfo(Equipments[equipmentIndex]);
 	fromInventory->UpdateInventoryInfos();
@@ -674,7 +702,9 @@ void UInventoryComponent::SERVER_UnequipItem_Implementation(const int32 equipmen
 
 void UInventoryComponent::SwapEquipmentWithInventory(UInventoryComponent* targetInventory, const int32 inventoryIndex, const int32 equipmentIndex)
 {
-	if (inventoryIndex >= InventoryInfos.Num() || equipmentIndex >= EquipmentInfos.Num())
+
+	if (!ValidateAccess(targetInventory, EInventoryAccessLevel::Unlimited)||
+		inventoryIndex >= InventoryInfos.Num() || equipmentIndex >= EquipmentInfos.Num())
 	{
 		return;
 	}
@@ -684,7 +714,8 @@ void UInventoryComponent::SwapEquipmentWithInventory(UInventoryComponent* target
 
 void UInventoryComponent::SERVER_SwapEquipmentWithInventory_Implementation(UInventoryComponent* targetInventory, const int32 inventoryIndex, const int32 equipmentIndex)
 {
-	if (inventoryIndex >= Inventory.Num() || equipmentIndex >= Equipments.Num())
+	if (!ValidateAccess(targetInventory, EInventoryAccessLevel::Unlimited) || 
+		inventoryIndex >= Inventory.Num() || equipmentIndex >= Equipments.Num())
 	{
 		return;
 	}
@@ -754,9 +785,32 @@ UItemSlot* UInventoryComponent::GetUtilitySlot()
 	{
 		UtilitySlot = NewObject<UItemSlot>();
 	}
-
 	return UtilitySlot;
 }
+
+FInventoryAccessResult UInventoryComponent::GetAccessLevel_Implementation(UInventoryComponent* TargetInventory)
+{
+	FInventoryAccessResult Result;
+	Result.AccessLevel = EInventoryAccessLevel::Unlimited;
+	Result.Reason = "Default unlimied access";
+	return Result;
+}
+
+bool UInventoryComponent::ValidateAccess(UInventoryComponent* TargetInventory, EInventoryAccessLevel RequiredLevel)
+{
+	if (!TargetInventory)
+	{
+		return false;
+	}
+	FInventoryAccessResult CurrentAccess = GetAccessLevel(TargetInventory);
+	bool AccessResult = static_cast<uint8>(CurrentAccess.AccessLevel) >= static_cast<uint8>(RequiredLevel);
+	if (!AccessResult)
+	{
+		OnInvalidClientAccess.Broadcast(TargetInventory, CurrentAccess);
+	}
+	return AccessResult;
+}
+
 
 
 void UInventoryComponent::UpdateAllInfos()
