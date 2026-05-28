@@ -36,7 +36,7 @@ struct APE_INVENTORY_API FItemInfo
 	TEnumAsByte<EItemType> ItemType = EItemType::Misc;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ape_Item")
-	TArray<FName> ItemProperties;
+	TArray<FString> ItemProperties;
 
 	// Define the equality operator for FItemInfo
 	//bool operator=(const FItemInfo& Other) const
