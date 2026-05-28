@@ -45,6 +45,8 @@ class APE_INVENTORY_API UInventoryComponent : public UActorComponent
 	GENERATED_BODY()
 
 protected:
+	UInventoryComponent();
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void BeginPlay() override;
@@ -202,6 +204,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory")
 	UItemSlot* GetUtilitySlot();
 
+	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory")
+	int32 GetInitialInventorySize() { return InitialInventorySize; }
+
 	// ================ Optional Implementation ================ //
 
 	/* Validate clients access level? Like looting/viewing chest they don't own */
@@ -243,6 +248,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ape_Inventory|Server")
 	int32 InventorySize = 12;
+
+	int32 InitialInventorySize = InventorySize;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ape_Inventory|Server", Replicated)
 	TArray<FName> EquipmentDefinitions;

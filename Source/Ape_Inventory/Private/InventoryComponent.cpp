@@ -3,6 +3,13 @@
 #include "Net/UnrealNetwork.h"
 #include <cstdlib>
 
+UInventoryComponent::UInventoryComponent()
+{
+	PrimaryComponentTick.bCanEverTick = false;
+
+	SetIsReplicatedByDefault(true);
+}
+
 void UInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -17,7 +24,12 @@ void UInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Initialize();
+	InitialInventorySize = InventorySize;
+
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		Initialize();
+	}
 }
 
 void UInventoryComponent::Initialize()
