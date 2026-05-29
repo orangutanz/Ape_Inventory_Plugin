@@ -27,10 +27,10 @@ struct APE_INVENTORY_API FItemInfo
 	FName ItemID = "";
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ape_Item", meta = (ClampMin = 0))
-	int32 MaxStack = 1;
+	int32 Quantity = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ape_Item", meta = (ClampMin = 0))
-	int32 Quantity = 1;
+	int32 MaxStack = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ape_Item")
 	TEnumAsByte<EItemType> ItemType = EItemType::Misc;
@@ -78,7 +78,7 @@ public:
 
 	// Getter
 	UFUNCTION()
-	bool IsEmpty() { return mItemInfo.ItemID.IsEqual(""); }
+	bool IsEmpty() { return (mItemInfo.ItemID.IsEqual("") || mItemInfo.Quantity == 0); }
 
 	UFUNCTION()
 	bool IsFull() { return mItemInfo.Quantity >= mItemInfo.MaxStack; }

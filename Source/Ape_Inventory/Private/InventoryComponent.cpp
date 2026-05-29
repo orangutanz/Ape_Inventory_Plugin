@@ -167,24 +167,53 @@ bool UInventoryComponent::AddItem(UItemSlot* item)
 		return false;
 	}
 	FItemInfo tempInfo = item->GetItemInfo();
-	for (auto i : Inventory)
+	int totalQuantity = item->GetQuantity();
+
+	// Fill existing stacks first
+	for (auto slot : Inventory)
 	{
-		if (i->MergeItem(item)) // fully added
+		if (item->IsEmpty()) // Fully added
 		{
 			CLIENT_NotifyItemAdded(tempInfo);
 			UpdateInventoryInfos();
 			NotifyItemAdded(tempInfo);
 			return true;
 		}
+		 
+		if(!slot->IsEmpty())
+		{
+			slot->MergeItem(item);
+		}
 	}
-	tempInfo.Quantity -= item->GetQuantity();
-	if (tempInfo.Quantity > 0) // partially added
+
+	// Fill empty slots
+	for (auto slot : Inventory)
 	{
-		CLIENT_NotifyItemAdded(tempInfo);
-		UpdateInventoryInfos();
-		NotifyItemAdded(tempInfo);
+		if (item->IsEmpty()) // Fully added
+		{
+			CLIENT_NotifyItemAdded(tempInfo);
+			UpdateInventoryInfos();
+			NotifyItemAdded(tempInfo);
+			return true;
+		}
+
+		if (slot->IsEmpty())
+		{
+			slot->MergeItem(item);
+		}
 	}
-	return false;
+
+	if (totalQuantity == item->GetQuantity()) // Non added
+	{
+		return false;
+	}
+	// Update actual added amount
+	tempInfo.Quantity = (totalQuantity - item->GetQuantity());
+	CLIENT_NotifyItemAdded(tempInfo);
+	UpdateInventoryInfos();
+	NotifyItemAdded(tempInfo);
+
+	return false; // Partially added
 }
 
 bool UInventoryComponent::RemoveItemByName(FName ItemID, int32 amount)

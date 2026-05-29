@@ -10,10 +10,15 @@ void UItemSlot::SetItemInfo(FItemInfo info)
 
 bool UItemSlot::SetQuantity(int32 num)
 {
-	if (num == 0 || (num > mItemInfo.MaxStack) && (mItemInfo.ItemType != EItemType::Equipment))
-		return false;
+	//if (num == 0 || (num > mItemInfo.MaxStack) && (mItemInfo.ItemType != EItemType::Equipment))
+	//	return false;
 
 	mItemInfo.Quantity = num;
+	if (num == 0)
+	{
+		FItemInfo defaultInfo;
+		mItemInfo = defaultInfo;
+	}
 	return true;
 }
 
@@ -73,48 +78,33 @@ FItemInfo UItemSlot::SplitQuantity(int32 amount)
 
 bool UItemSlot::MergeItem(UItemSlot* other)
 {
-	if (!other || other == this)
+	if (!other || other == this || other->IsEmpty())
 	{
 		return false;
 	}
 
+	// Empty slot
 	if (IsEmpty())
 	{
-		SetItemInfo(other->GetItemInfo());
-		return true;
+		FItemInfo NewInfo = other->GetItemInfo();
+		int32 AmountToTake = FMath::Min(NewInfo.Quantity, NewInfo.MaxStack);
+		NewInfo.Quantity = AmountToTake;
+		SetItemInfo(NewInfo);
+		other->SetQuantity(other->GetQuantity() - AmountToTake);
+		return other->IsEmpty();
 	}
-	else
-	{
-		if (other->GetItemID() != mItemInfo.ItemID || mItemInfo.MaxStack <= mItemInfo.Quantity)
-		{
-			return false;
-		}
-		if ((mItemInfo.Quantity + other->GetQuantity()) > mItemInfo.MaxStack)
-		{
-			int amount = mItemInfo.MaxStack - mItemInfo.Quantity;
-			mItemInfo.Quantity = mItemInfo.MaxStack;
-			other->SetQuantity(other->GetQuantity() - amount);
-			return false;
-		}
-		mItemInfo.Quantity += other->GetQuantity();
-		other->ClearItemInfo();
-		return true;
-	}
-	if (other == this || mItemInfo.Quantity >= mItemInfo.MaxStack || other->GetItemID() != GetItemID())
+
+	// Different item or already full
+	if (mItemInfo.Quantity >= mItemInfo.MaxStack || other->GetItemID() != GetItemID())
 	{
 		return false;
 	}
 
-	int32 combiedAmount = mItemInfo.Quantity + other->mItemInfo.Quantity;
-	if (combiedAmount <= mItemInfo.MaxStack)
-	{
-		mItemInfo.Quantity = combiedAmount; // Fully merged
-		other->mItemInfo.Quantity = 0;
-		return true;
-	}
-	mItemInfo.Quantity = mItemInfo.MaxStack;
-	other->mItemInfo.Quantity = combiedAmount - mItemInfo.MaxStack;
-	return false; // Partial merged
+	int32 SpaceLeft = mItemInfo.MaxStack - mItemInfo.Quantity;
+	int32 AmountToTake = FMath::Min(SpaceLeft, other->GetQuantity());
+	mItemInfo.Quantity += AmountToTake;
+	other->SetQuantity(other->GetQuantity() - AmountToTake);
+	return other->IsEmpty(); 
 }
 
 void UItemSlot::SwapItemInfo(UItemSlot* other)
