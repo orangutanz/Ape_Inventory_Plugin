@@ -56,7 +56,7 @@ public:
 
 	/* Server creates Inventory */
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
-	void Initialize();
+	void InitializeInventory();
 
 	/* Server calls OnDropInventoryItem if srinking and not big enough */
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
@@ -68,7 +68,7 @@ public:
 	
 	/* Server clears all info, no dropping */
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
-	void Deinitialize();
+	void DeinitializeInventory();
 
 	/* Server returns true when fully added, else ItemSlot has remaining info */
 	UFUNCTION(BlueprintCallable, Category = "Ape_Inventory|Server")
@@ -251,12 +251,12 @@ public:
 
 	int32 InitialInventorySize = InventorySize;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ape_Inventory|Server", Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ape_Inventory", Replicated)
 	TArray<FName> EquipmentDefinitions;
 
 	//  ================ Inventory ================ //
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ape_Inventory|Client", ReplicatedUsing = OnRep_InventoryUpdate)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ape_Inventory", ReplicatedUsing = OnRep_InventoryUpdate)
 	TArray<FItemInfo> InventoryInfos; //Infos for clients
 
 	UPROPERTY() //Items on server
@@ -264,7 +264,7 @@ public:
 
 	//  ================ Equipment ================ //
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ape_Inventory|Client", ReplicatedUsing = OnRep_EquipmentUpdate)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ape_Inventory", ReplicatedUsing = OnRep_EquipmentUpdate)
 	TArray<FItemInfo> EquipmentInfos; //Infos for clients
 
 	UPROPERTY() //Items on server
@@ -280,23 +280,23 @@ public:
 
 	//  ================ Delegates ================ //
 
-	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Client")
+	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory")
 	FOnInventoryUpdated OnInventoryUpdated;
 
-	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Client")
+	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory")
 	FOnEquipmentUpdated OnEquipmentUpdated;
 
 	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Client")
-	FOnItemAdded OnItemAdded;
+	FOnItemAdded OnItemAdded; // Call on owning client
 
 	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Client")
-	FOnItemRemoved OnItemRemoved;
+	FOnItemRemoved OnItemRemoved; // Call on owning client
 
 	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Server")
-	FOnDropInventoryItem OnDropInventoryItem;
+	FOnDropInventoryItem OnDropInventoryItem; // Call on server
 
 	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Server")
-	FOnUseInventoryItem OnUseInventoryItem;
+	FOnUseInventoryItem OnUseInventoryItem; // Call on server
 
 	UPROPERTY(BlueprintAssignable, Category = "Ape_Inventory|Server")
 	FOnInvalidClientAccess OnInvalidClientAccess;

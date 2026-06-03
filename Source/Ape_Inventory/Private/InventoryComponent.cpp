@@ -28,11 +28,11 @@ void UInventoryComponent::BeginPlay()
 
 	if (GetOwner() && GetOwner()->HasAuthority())
 	{
-		Initialize();
+		InitializeInventory();
 	}
 }
 
-void UInventoryComponent::Initialize()
+void UInventoryComponent::InitializeInventory()
 {
 	if (bInistialized)
 		return;
@@ -54,7 +54,7 @@ void UInventoryComponent::ResizeInventory()
 {
 	if (!bInistialized)
 	{
-		Initialize();
+		InitializeInventory();
 		return;
 	}
 
@@ -97,7 +97,7 @@ void UInventoryComponent::RedefineEquipments()
 {
 	if (!bInistialized)
 	{
-		Initialize();
+		InitializeInventory();
 		return;
 	}
 
@@ -140,7 +140,7 @@ void UInventoryComponent::RedefineEquipments()
 	UpdateAllInfos();// Update inventory and equipement
 }
 
-void UInventoryComponent::Deinitialize()
+void UInventoryComponent::DeinitializeInventory()
 {
 	OnInventoryUpdated.Clear();
 	OnEquipmentUpdated.Clear();
