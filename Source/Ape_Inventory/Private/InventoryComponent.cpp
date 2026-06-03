@@ -872,6 +872,22 @@ void UInventoryComponent::UpdateAllInfos()
 	OnRep_EquipmentUpdate();
 }
 
+void UInventoryComponent::NotifyViewers()
+{
+	for (int32 i = ViewingComponents.Num() - 1; i >= 0; --i)
+	{
+		if (!ViewingComponents[i].IsValid())
+		{
+			ViewingComponents.RemoveAtSwap(i);
+			continue;
+		}
+
+		UInventoryComponent* Viewer = ViewingComponents[i].Get();
+
+		Viewer->CLIENT_RecieveInventoryInfo(this, InventoryInfos);
+	}
+}
+
 void UInventoryComponent::UpdateInventoryInfos()
 {
 	InventoryInfos.Empty();
@@ -880,6 +896,9 @@ void UInventoryComponent::UpdateInventoryInfos()
 		InventoryInfos.Add(i->GetItemInfo());
 	}
 	OnRep_InventoryUpdate();
+
+
+	NotifyViewers();
 }
 
 void UInventoryComponent::UpdateEquipmentInfos()

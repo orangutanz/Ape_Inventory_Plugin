@@ -226,6 +226,9 @@ private:
 
 	// Notify
 	UFUNCTION()
+	void NotifyViewers();
+
+	UFUNCTION()
 	void OnRep_InventoryUpdate();
 
 	UFUNCTION()
